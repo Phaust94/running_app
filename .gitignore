@@ -1,3 +1,4 @@
 .idea
 tst*.py
 secrets.py
+*.exe
