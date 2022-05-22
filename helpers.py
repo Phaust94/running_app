@@ -1,10 +1,20 @@
 from datetime import timedelta
 from functools import update_wrapper
+import binascii
+import json
+import typing
+import contextlib
+from sqlite3 import connect
 
 from flask import make_response, request, current_app
+import blowfish
+
+import constants
 
 __all__ = [
     "crossdomain",
+    "db",
+    "decrypt_qeng_data",
 ]
 
 
@@ -61,3 +71,25 @@ def crossdomain(origin=None, methods=None, headers=None, max_age=21600,
         f.provide_automatic_options = False
         return update_wrapper(wrapped_function, f)
     return decorator
+
+
+def decrypt_qeng_data(
+        data: str,
+        key: str,
+) -> typing.Dict[str, typing.Union[str, int]]:
+    data = binascii.unhexlify(data)
+    cipher = blowfish.Cipher(key.encode())
+    data_decrypted = b"".join(cipher.decrypt_ecb(data))
+    data_decrypted = data_decrypted.rstrip(b'\x00')
+    data_json = json.loads(data_decrypted)
+    return data_json
+
+
+@contextlib.contextmanager
+def db():
+    conn = connect(constants.DB_PATH)
+    try:
+        yield conn
+    finally:
+        conn.close()
+    return None

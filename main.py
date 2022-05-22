@@ -1,13 +1,11 @@
 
 import os
-import pytz
-import datetime
-import json
 
 from flask import Flask, request
 from waitress import serve
 
-from helpers import crossdomain
+import helpers
+import position
 
 CUR_DIR = os.path.abspath(os.path.join(__file__, ".."))
 
@@ -16,13 +14,15 @@ os.chdir(CUR_DIR)
 app = Flask(__name__)
 
 
-@app.route('/prestart/', methods=["GET"])
-@crossdomain(origin='*')
+@app.route('/prestart/', methods=["POST"])
+@helpers.crossdomain(origin='*')
 def prestart():
-    user_id = int(request.args["user_id"])
-    # current_time = request.args["curr_time"]
+    request_data = request.form
 
-    return json.dumps({"Success": 1})
+    up = position.UserPosition.from_form(request_data)
+    with helpers.db() as conn:
+        up.to_db(conn)
+    return ""
 
 
 @app.after_request
